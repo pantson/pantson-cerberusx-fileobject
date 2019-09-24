@@ -1,0 +1,97 @@
+Strict
+Import reflection
+Import brl.filestream
+
+Function SaveObject:Void(file:String,obj:Object,classname:String)
+#If CONFIG="debug"
+	Print "Saving "+file+" for "+classname
+#End
+
+	' get class
+	Local c:ClassInfo = GetClass(classname)
+#If CONFIG="debug"
+		If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
+#End
+
+	' get fields
+	Local fields:FieldInfo[] = c.GetFields(False)
+	Local line:String
+	
+	Local fl:FileStream = FileStream.Open(file,"w")
+	
+	Local i:Int=0
+	While i<fields.Length()
+#If CONFIG="debug"
+	  Print "var name="+fields[i].Name
+	  Print "var type="+fields[i].Type.Name
+#End
+	  
+	  line = fields[i].Name+"="
+	  
+		Select fields[i].Type.Name
+	
+	  Case "cerberus.boxes.StringObject"
+	    Print "value="+UnboxString(fields[i].GetValue(obj))
+	    line+=UnboxString(fields[i].GetValue(obj))
+	  Case "cerberus.boxes.FloatObject"
+	    Print "value="+UnboxFloat(fields[i].GetValue(obj))
+	    line+=UnboxFloat(fields[i].GetValue(obj))
+	  Case "cerberus.boxes.IntObject"
+	    Print "value="+UnboxInt(fields[i].GetValue(obj))
+	    line+=UnboxInt(fields[i].GetValue(obj))
+	  End
+	
+		fl.WriteString(line+"~n")
+		i+=1  
+	Wend
+	fl.Close()
+End
+
+Function LoadObject:Void(file:String,obj:Object,classname:String)
+#If CONFIG="debug"
+	Print "Loading "+file
+#End
+
+	' get class
+	Local c:ClassInfo = GetClass(classname)
+#If CONFIG="debug"
+		If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
+#End
+
+	' get fields
+	Local fields:FieldInfo[] = c.GetFields(False)
+	Local line:String
+	
+	Local fl:FileStream = FileStream.Open(file,"r")
+	Local text:String = fl.ReadString()
+	
+	Local lines:String[] = text.Split("~n")
+	Local l:Int=0
+	While l<lines.Length()
+		Local split:Int=lines[l].Find("=")
+		If split>-1
+			Local fld:String = lines[l][0..split]
+			Local val:String = lines[l][(split+1)..]
+			
+			Local i:Int=0
+			While i<fields.Length()		  
+			  If fields[i].Name=fld			  
+					Select fields[i].Type.Name			
+				  Case "cerberus.boxes.StringObject"
+				    fields[i].SetValue(obj,BoxString(String(val)))
+				  Case "cerberus.boxes.FloatObject"
+				    fields[i].SetValue(obj,BoxFloat(Float(val)))
+				  Case "cerberus.boxes.IntObject"
+				    fields[i].SetValue(obj,BoxInt(Int(val)))
+				  End
+				  
+			  	i=fields.Length()
+				End
+				i+=1  
+			Wend
+		End
+		l+=1
+	Wend
+	fl.Close()
+End
+

@@ -1,0 +1,72 @@
+Strict
+
+Import mojo2
+Import fileobject
+
+' this is very important as it enables reflection in this file
+' main.cxs is the name of this file, where the test_obj class is
+#REFLECTION_FILTER="main"
+
+
+' a very simple object with different types
+Class test_obj
+	Field number:Int
+	Field floating:Float
+	Field text:String
+End
+
+
+Class myClass Extends App
+	Field canvas:Canvas
+	Field test:test_obj
+	
+	Method OnCreate:Int()
+		SetUpdateRate(60)				
+		canvas = New Canvas
+
+		' create an instance of test_obj		
+		test = New test_obj()
+		test.number = 36485
+		test.text = "WAS IT A CAR OR A CAT I SAW"
+		test.floating = 7.8249
+		
+		' auto save the object
+		SaveObject("test.txt",test,"test_obj")
+		
+		Return 0
+	End
+
+	Method OnUpdate:Int()
+		If KeyHit(KEY_S) Then SaveObject("test.txt",test,"test_obj")
+		If KeyHit(KEY_L) Then LoadObject("test.txt",test,"test_obj")
+		If KeyHit(KEY_C)
+			test.number = 0
+			test.floating = 0
+			test.text = "" 
+		End
+		
+		Return 0
+	End
+	
+	Method OnRender:Int()
+		canvas.Clear (0,0.5,0)	
+		
+		canvas.DrawText "dynamic object files test",20,0
+		
+		canvas.DrawText "number="+test.number,20,60
+		canvas.DrawText "floating="+test.floating,20,80
+		canvas.DrawText "text="+test.text,20,100
+
+		canvas.DrawText "S-save object      L-load object    C-clear object",20,300
+
+		canvas.Flush
+
+		Return 0
+	End
+End
+
+Function Main:Int()
+	New myClass		
+	Return 0
+End
+
