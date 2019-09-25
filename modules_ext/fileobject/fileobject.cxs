@@ -2,49 +2,23 @@ Strict
 Import reflection
 Import brl.filestream
 
-Function SaveObject:Void(file:String,obj:Object,classname:String)
-#If CONFIG="debug"
-	Print "Saving "+file+" for "+classname
-#End
-
-	' get class
-	Local c:ClassInfo = GetClass(classname)
-#If CONFIG="debug"
-		If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
-#End
-
-	' get fields
-	Local fields:FieldInfo[] = c.GetFields(False)
-	Local line:String
-	
+Function SaveObject:Void(file:String,obj:Object)',classname:String)
+	' process file	
 	Local fl:FileStream = FileStream.Open(file,"w")
+
+	SaveObject(fl,obj)
 	
-	Local i:Int=0
-	While i<fields.Length()
-#If CONFIG="debug"
-	  Print "var name="+fields[i].Name
-	  Print "var type="+fields[i].Type.Name
-#End
-	  
-	  line = fields[i].Name+"="
-	  
-		Select fields[i].Type.Name
-	
-	  Case "cerberus.boxes.StringObject"
-	    Print "value="+UnboxString(fields[i].GetValue(obj))
-	    line+=UnboxString(fields[i].GetValue(obj))
-	  Case "cerberus.boxes.FloatObject"
-	    Print "value="+UnboxFloat(fields[i].GetValue(obj))
-	    line+=UnboxFloat(fields[i].GetValue(obj))
-	  Case "cerberus.boxes.IntObject"
-	    Print "value="+UnboxInt(fields[i].GetValue(obj))
-	    line+=UnboxInt(fields[i].GetValue(obj))
-	  End
-	
-		fl.WriteString(line+"~n")
-		i+=1  
-	Wend
 	fl.Close()
+End
+
+Function DisplayObject:Void(obj:Object)
+	Print "==========================="
+	Local c:ClassInfo = GetClass(obj)
+	Local classname:String=c.Name
+	Print "  "+classname
+	Print "---------------------------"
+	SaveObject(Null ,obj)
+	Print "==========================="
 End
 
 Function LoadObject:Void(file:String,obj:Object,classname:String)
@@ -71,13 +45,24 @@ Function LoadObject:Void(file:String,obj:Object,classname:String)
 		Local split:Int=lines[l].Find("=")
 		If split>-1
 			Local fld:String = lines[l][0..split]
+			Local vars:String[] = fld.Split(".")
+
+			' check if field has array?
+			Local index:Int=-1
+			If fld.Contains("[")
+				index = Int(fld[(fld.Find("[")+1)..(fld.Length-1)])
+				fld = fld[0..(fld.Find("["))]
+				Print fld+" "+index
+			End
 			Local val:String = lines[l][(split+1)..]
 			
+			' find value to set
 			Local i:Int=0
 			While i<fields.Length()		  
 			  If fields[i].Name=fld			  
 					Select fields[i].Type.Name			
 				  Case "cerberus.boxes.StringObject"
+				  	
 				    fields[i].SetValue(obj,BoxString(String(val)))
 				  Case "cerberus.boxes.FloatObject"
 				    fields[i].SetValue(obj,BoxFloat(Float(val)))
@@ -95,3 +80,85 @@ Function LoadObject:Void(file:String,obj:Object,classname:String)
 	fl.Close()
 End
 
+Private
+' recursive function
+Function SaveObject:Void(fl:FileStream,obj:Object,prefix:String="")
+	' get class
+	Local c:ClassInfo = GetClass(obj)
+	Local classname:String=c.Name
+
+#If CONFIG="debug"
+	If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
+#End
+	
+	' get fields
+	Local fields:FieldInfo[] = c.GetFields(False)
+	
+	Local i:Int=0
+	While i<fields.Length()	  
+	  Local line:String = ""	  
+	  ' check for Array
+	  If fields[i].Type.Name[0..26]="cerberus.boxes.ArrayObject"
+	  	' get Type name
+	  	Local _type:String = fields[i].Type.Name[27..(fields[i].Type.Name.Length()-1)]
+	  	' if contains . then non cerberus class (dirty)
+	  	If _type.Contains(".")
+#if CONFIG="debug"
+					Print "  "+fields[i].Name+"[] - Arrays of non CerberusX classes are unsupported "
+#End
+					' The below block should have worked, but ArrayBoxer doesnt support custom types
+#rem
+			  	Local k:Object =  ArrayBoxer<Object>.Unbox(fields[i].GetValue(obj))
+			  	Local m:Int=0
+			  	While m<k.Length()
+						SaveObject(fl,fi[m].GetValue(obj),prefix+fields[i].Name+"["+m+"].")
+			  		m+=1
+			  	Wend
+#end
+	  	Else
+	  		Select _type
+			  Case "Int"
+			  	Local k:Int[] = ArrayBoxer<Int>.Unbox( fields[i].GetValue(obj) )
+			  	Local m:Int=0
+			  	While m<k.Length()
+			    	line+=prefix+fields[i].Name+"["+m+"]="+k[m]+"~n"
+			  		m+=1
+			  	Wend
+			  Case "String"
+			  	Local k:String[] = ArrayBoxer<String>.Unbox( fields[i].GetValue(obj) )
+			  	Local m:Int=0
+			  	While m<k.Length()
+			    	line+=prefix+fields[i].Name+"["+m+"]="+k[m]+"~n"
+			  		m+=1
+			  	Wend
+			  Case "Float"
+			  	Local k:Float[] = ArrayBoxer<Float>.Unbox( fields[i].GetValue(obj) )
+			  	Local m:Int=0
+			  	While m<k.Length()
+			    	line+=prefix+fields[i].Name+"["+m+"]="+k[m]+"~n"
+			  		m+=1
+			  	Wend
+	  		End
+	  	End
+	  Else
+			Select fields[i].Type.Name	
+		  Case "cerberus.boxes.StringObject"
+		    line=prefix+fields[i].Name+"="+UnboxString(fields[i].GetValue(obj))+"~n"
+		  Case "cerberus.boxes.FloatObject"
+		    line=prefix+fields[i].Name+"="+UnboxFloat(fields[i].GetValue(obj))+"~n"
+		  Case "cerberus.boxes.IntObject"
+		    line=prefix+fields[i].Name+"="+UnboxInt(fields[i].GetValue(obj))+"~n"
+		  Default
+		  	' crude way to detect non cerberus class
+		  	If fields[i].Type.Name[0..8]<>"cerberus" Then SaveObject(fl,fields[i].GetValue(obj),prefix+fields[i].Name+".")
+		  End
+	  End
+
+		If fl=Null
+			Print line
+		Else
+			fl.WriteString(line)
+		End
+		i+=1  
+	Wend
+End
