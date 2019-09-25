@@ -155,7 +155,7 @@ Function SaveObject:Void(fl:FileStream,obj:Object,prefix:String="")
 	  End
 
 		If fl=Null
-			Print line
+			Print line.Trim()
 		Else
 			fl.WriteString(line)
 		End
