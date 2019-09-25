@@ -13,8 +13,22 @@ Class test_obj
 	Field number:Int
 	Field floating:Float
 	Field text:String
+	
+	Field img:Image
+	
+	Field n:nested[2]
+	
+	Field arr1:Int[10]
+	Field arr2:Float[10]
+	Field arr3:String[10]
+	
+	Field nest:nested
 End
 
+Class nested
+	Field num:Int
+	Field arr:Int[2]
+End
 
 Class myClass Extends App
 	Field canvas:Canvas
@@ -29,15 +43,19 @@ Class myClass Extends App
 		test.number = 36485
 		test.text = "WAS IT A CAR OR A CAT I SAW"
 		test.floating = 7.8249
-		
+		test.arr1[5]=12345
+		test.nest = New nested()
+		test.n[0] = New nested()
+		test.n[1] = New nested()
 		' auto save the object
-		SaveObject("test.txt",test,"test_obj")
+		SaveObject("test.txt",test)
 		
 		Return 0
 	End
 
 	Method OnUpdate:Int()
-		If KeyHit(KEY_S) Then SaveObject("test.txt",test,"test_obj")
+		If KeyHit(KEY_D) Then DisplayObject(test)
+		If KeyHit(KEY_S) Then SaveObject("test.txt",test)
 		If KeyHit(KEY_L) Then LoadObject("test.txt",test,"test_obj")
 		If KeyHit(KEY_C)
 			test.number = 0
@@ -57,7 +75,7 @@ Class myClass Extends App
 		canvas.DrawText "floating="+test.floating,20,80
 		canvas.DrawText "text="+test.text,20,100
 
-		canvas.DrawText "S-save object      L-load object    C-clear object",20,300
+		canvas.DrawText "S-save object      L-load object    C-clear object   D-display object",20,300
 
 		canvas.Flush
 
