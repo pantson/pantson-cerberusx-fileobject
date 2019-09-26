@@ -4,13 +4,18 @@ v0.1
 
 Dynamically loads and saves objects
 
-Currently on flat objects work. Now works with arrays or other objects. Strings, int and floats supported.
+## Compatibility
+
+Currently works with flat objects and objects with arrays and other objects. Strings, int and floats supported.
 Arrays of custom types not supported.
+
+### working classes
 
     class test
       field text:string
       field num1:int
       field num2:int
+      field num3:int[10]
       
       field t:values
     end
@@ -19,7 +24,17 @@ Arrays of custom types not supported.
       field num1:int
       field test:string
     end
+
+### non working classes
     
+    class test      
+      field t:values[10]
+    end
+  
+    class values
+      field num1:int
+    end
+
 ## Functions
 
 ### DisplayObject(obj:object)
@@ -33,8 +48,6 @@ Save an object to a filename
 ### LoadObject(filename:string,obj:object)
 
 Loads a file into obj
-
-This is currently BROKEN!!!
 
 ## Example
 

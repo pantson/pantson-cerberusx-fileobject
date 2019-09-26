@@ -58,7 +58,7 @@ Class myClass Extends App
 	Method OnUpdate:Int()
 		If KeyHit(KEY_D) Then DisplayObject(test)
 		If KeyHit(KEY_S) Then SaveObject("test.txt",test)
-		If KeyHit(KEY_L) Then LoadObject("test.txt",test,"test_obj")
+		If KeyHit(KEY_L) Then LoadObject("test.txt",test)
 		If KeyHit(KEY_C)
 			test.number = 0
 			test.floating = 0

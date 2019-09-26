@@ -22,23 +22,11 @@ Function DisplayObject:Void(obj:Object,title:Int=True)
 	SaveObject(Null ,obj)
 End
 
-Function LoadObject:Void(file:String,obj:Object,classname:String)
-#If CONFIG="debug"
-	Print "Loading "+file
-#End
-
-	' get class
-	Local c:ClassInfo = GetClass(classname)
-#If CONFIG="debug"
-		If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
-#End
-
-	' get fields
-	Local fields:FieldInfo[] = c.GetFields(False)
-	Local line:String
-	
+Function LoadObject:Void(file:String,obj:Object)	
 	Local fl:FileStream = FileStream.Open(file,"r")
 	Local text:String = fl.ReadString()
+  Local fields:FieldInfo[]
+	Local line:String
 	
 	Local lines:String[] = text.Split("~n")
 	Local l:Int=0
@@ -47,33 +35,87 @@ Function LoadObject:Void(file:String,obj:Object,classname:String)
 		If split>-1
 			Local fld:String = lines[l][0..split]
 			Local vars:String[] = fld.Split(".")
-
-			' check if field has array?
-			Local index:Int=-1
-			If fld.Contains("[")
-				index = Int(fld[(fld.Find("[")+1)..(fld.Length-1)])
-				fld = fld[0..(fld.Find("["))]
-				Print fld+" "+index
-			End
 			Local val:String = lines[l][(split+1)..]
 			
-			' find value to set
-			Local i:Int=0
-			While i<fields.Length()		  
-			  If fields[i].Name=fld			  
-					Select fields[i].Type.Name			
-				  Case "cerberus.boxes.StringObject"
-				  	
-				    fields[i].SetValue(obj,BoxString(String(val)))
-				  Case "cerberus.boxes.FloatObject"
-				    fields[i].SetValue(obj,BoxFloat(Float(val)))
-				  Case "cerberus.boxes.IntObject"
-				    fields[i].SetValue(obj,BoxInt(Int(val)))
-				  End
-				  
-			  	i=fields.Length()
+			Local f:Object = obj
+			
+			Local j:Int=0
+			While j<vars.Length()
+				Local var:String = vars[j]
+				
+				' check if var has array?
+				Local index:Int=-1
+				If var.Contains("[")
+					index = Int(var[(var.Find("[")+1)..(var.Length-1)])
+					var = var[0..(var.Find("["))]
 				End
-				i+=1  
+				
+				' find var in parent
+				Local c:ClassInfo = GetClass(f)
+				Local classname:String = c.Name
+#If CONFIG="debug"
+		If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
+#End
+				Local fields:FieldInfo[] = c.GetFields(False)
+				
+				Local i:Int=0
+				While i<fields.Length()		  
+				  If fields[i].Name=var			  
+						If j=vars.Length()-1
+							' end var, assign value
+						  If fields[i].Type.Name[0..26]="cerberus.boxes.ArrayObject"
+						  	' array types
+						  	Local _type:String = fields[i].Type.Name[27..(fields[i].Type.Name.Length()-1)]
+			  				Select _type
+					  		Case "Int"
+					  			' unbox first
+							  	Local k:Int[] = ArrayBoxer<Int>.Unbox( fields[i].GetValue(f) )
+					  			' resize if nesscary
+					  			If k.Length()<index+1 Then k = k.Resize(index+1)
+					  			' assign index with value
+					  			k[index] = Int(val)
+					  			' box it up
+							    fields[i].SetValue(f,ArrayBoxer<Int>.Box(k))
+					  		Case "String"
+					  			' unbox first
+							  	Local k:String[] = ArrayBoxer<String>.Unbox( fields[i].GetValue(f) )
+					  			' resize if nesscary
+					  			If k.Length()<index+1 Then k = k.Resize(index+1)
+					  			' assign index with value
+					  			k[index] = String(val)
+					  			' box it up
+							    fields[i].SetValue(f,ArrayBoxer<String>.Box(k))
+					  		Case "Float"
+					  			' unbox first
+							  	Local k:Float[] = ArrayBoxer<Float>.Unbox( fields[i].GetValue(f) )
+					  			' resize if nesscary
+					  			If k.Length()<index+1 Then k = k.Resize(index+1)
+					  			' assign index with value
+					  			k[index] = Float(val)
+					  			' box it up
+							    fields[i].SetValue(f,ArrayBoxer<Float>.Box(k))
+					  		End
+							Else
+								' plain types
+								Select fields[i].Type.Name	
+							  Case "cerberus.boxes.StringObject"
+							    fields[i].SetValue(f,BoxString(String(val)))
+							  Case "cerberus.boxes.FloatObject"
+							    fields[i].SetValue(f,BoxFloat(Float(val)))
+							  Case "cerberus.boxes.IntObject"
+							    fields[i].SetValue(f,BoxInt(Int(val)))
+							  End
+							End
+						Else
+							' recurse. set new parent
+							f = fields[i].GetValue(f)
+							i = fields.Length()
+						End
+					End
+					i+=1  
+				Wend
+				
+				j+=1
 			Wend
 		End
 		l+=1
