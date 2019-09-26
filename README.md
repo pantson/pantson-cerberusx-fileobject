@@ -1,6 +1,6 @@
 # pantson-cerberusx-fileobject
 
-v0.1
+v0.3b
 
 Dynamically loads and saves objects
 
