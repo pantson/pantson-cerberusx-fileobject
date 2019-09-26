@@ -11,14 +11,15 @@ Function SaveObject:Void(file:String,obj:Object)',classname:String)
 	fl.Close()
 End
 
-Function DisplayObject:Void(obj:Object)
-	Print "==========================="
-	Local c:ClassInfo = GetClass(obj)
-	Local classname:String=c.Name
-	Print "  "+classname
-	Print "---------------------------"
+Function DisplayObject:Void(obj:Object,title:Int=True)
+	If title
+		Print "==========================="
+		Local c:ClassInfo = GetClass(obj)
+		Local classname:String=c.Name
+		Print "  "+classname
+		Print "---------------------------"
+	End
 	SaveObject(Null ,obj)
-	Print "==========================="
 End
 
 Function LoadObject:Void(file:String,obj:Object,classname:String)
@@ -103,15 +104,15 @@ Function SaveObject:Void(fl:FileStream,obj:Object,prefix:String="")
 	  	Local _type:String = fields[i].Type.Name[27..(fields[i].Type.Name.Length()-1)]
 	  	' if contains . then non cerberus class (dirty)
 	  	If _type.Contains(".")
-#if CONFIG="debug"
+#If CONFIG="debug"
 					Print "  "+fields[i].Name+"[] - Arrays of non CerberusX classes are unsupported "
 #End
 					' The below block should have worked, but ArrayBoxer doesnt support custom types
 #rem
-			  	Local k:Object =  ArrayBoxer<Object>.Unbox(fields[i].GetValue(obj))
+			  	Local k:Object[] =  ArrayBoxer<Object>.Unbox(fields[i].GetValue(obj))
 			  	Local m:Int=0
 			  	While m<k.Length()
-						SaveObject(fl,fi[m].GetValue(obj),prefix+fields[i].Name+"["+m+"].")
+						SaveObject(fl,k[m],prefix+fields[i].Name+"["+m+"].")
 			  		m+=1
 			  	Wend
 #end

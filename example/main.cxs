@@ -22,12 +22,13 @@ Class test_obj
 	Field arr2:Float[10]
 	Field arr3:String[10]
 	
-	Field nest:nested
+	Field nest1:nested
+	Field nest2:nested
 End
 
 Class nested
 	Field num:Int
-	Field arr:Int[2]
+	Field arr:Float[2]
 End
 
 Class myClass Extends App
@@ -44,7 +45,8 @@ Class myClass Extends App
 		test.text = "WAS IT A CAR OR A CAT I SAW"
 		test.floating = 7.8249
 		test.arr1[5]=12345
-		test.nest = New nested()
+		test.nest1 = New nested()
+		test.nest2 = New nested()
 		test.n[0] = New nested()
 		test.n[1] = New nested()
 		' auto save the object
