@@ -1,8 +1,9 @@
 # pantson-cerberusx-fileobject
 
-v0.3b
+v0.4b
 
-Dynamically loads and saves objects
+Dynamically convers objects into text.
+Also contains functions for loading and saving objects. 
 
 ## Compatibility
 
@@ -37,6 +38,14 @@ Arrays of custom types not supported.
 
 ## Functions
 
+### Object2String:String[](obj:Object)
+
+Converts an object to text. Use this text to add to your gamestate or other files.
+
+### String2Object(text:String,obj:Objec)
+
+Convert some text to an object.
+
 ### DisplayObject(obj:object)
 
 outputs object to screen/log
@@ -54,4 +63,5 @@ Loads a file into obj
     If KeyHit(KEY_D) Then DisplayObject(test)
     If KeyHit(KEY_S) Then SaveObject("test.txt",test)
     If KeyHit(KEY_L) Then LoadObject("test.txt",test)
- 
+    text:String[] = Object2Text(test)
+    String2Object(["num1=45","num2=72"],test)
