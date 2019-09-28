@@ -2,12 +2,23 @@ Strict
 Import reflection
 Import brl.filestream
 
-Function SaveObject:Void(file:String,obj:Object)',classname:String)
-	' process file	
-	Local fl:FileStream = FileStream.Open(file,"w")
-
-	SaveObject(fl,obj)
+Function LoadObject:Void(file:String,obj:Object)
+	Local fl:FileStream = FileStream.Open(file,"r")
+	Local text:String =fl.ReadString()
+	fl.Close()
 	
+	Local lines:String[] = text.Split("~n")
+	String2Object(lines,obj)
+End
+
+Function SaveObject:Void(file:String,obj:Object)
+	Local text:String[] = Object2String(obj)
+	Local fl:FileStream = FileStream.Open(file,"w")
+	Local i:Int=0
+	While i<text.Length()
+		fl.WriteLine(text[i])'+"~n")
+		i+=1
+	Wend	
 	fl.Close()
 End
 
@@ -19,16 +30,20 @@ Function DisplayObject:Void(obj:Object,title:Int=True)
 		Print "  "+classname
 		Print "---------------------------"
 	End
-	SaveObject(Null ,obj)
+
+	Local text:String[] = Object2String(obj)
+	
+	Local i:Int=0
+	While i<text.Length()
+		Print text[i]
+		i+=1
+	Wend	
 End
 
-Function LoadObject:Void(file:String,obj:Object)	
-	Local fl:FileStream = FileStream.Open(file,"r")
-	Local text:String = fl.ReadString()
+Function String2Object:Void(lines:String[],obj:Object)	
   Local fields:FieldInfo[]
 	Local line:String
 	
-	Local lines:String[] = text.Split("~n")
 	Local l:Int=0
 	While l<lines.Length()
 		Local split:Int=lines[l].Find("=")
@@ -120,16 +135,29 @@ Function LoadObject:Void(file:String,obj:Object)
 		End
 		l+=1
 	Wend
-	fl.Close()
+End
+
+Function Object2String:String[](obj:Object)
+	Local output:String[]
+
+	output = _FO_GetObjectText(output,obj)
+	
+	Return output
+End
+
+Function String2Objectq:Void(lines:String[],obj:Object)
+	output = GetObjectText(output,obj)
+	
+	Return output
 End
 
 Private
 ' recursive function
-Function SaveObject:Void(fl:FileStream,obj:Object,prefix:String="")
+Function _FO_GetObjectText:String[](lines:String[],obj:Object,prefix:String="")
 	' get class
 	Local c:ClassInfo = GetClass(obj)
 	Local classname:String=c.Name
-
+	
 #If CONFIG="debug"
 	If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
 #End
@@ -164,21 +192,21 @@ Function SaveObject:Void(fl:FileStream,obj:Object,prefix:String="")
 			  	Local k:Int[] = ArrayBoxer<Int>.Unbox( fields[i].GetValue(obj) )
 			  	Local m:Int=0
 			  	While m<k.Length()
-			    	line+=prefix+fields[i].Name+"["+m+"]="+k[m]+"~n"
+			    	lines = _FO_AddText(lines,prefix+fields[i].Name+"["+m+"]="+k[m])
 			  		m+=1
 			  	Wend
 			  Case "String"
 			  	Local k:String[] = ArrayBoxer<String>.Unbox( fields[i].GetValue(obj) )
 			  	Local m:Int=0
 			  	While m<k.Length()
-			    	line+=prefix+fields[i].Name+"["+m+"]="+k[m]+"~n"
+			    	lines = _FO_AddText(lines,prefix+fields[i].Name+"["+m+"]="+k[m])
 			  		m+=1
 			  	Wend
 			  Case "Float"
 			  	Local k:Float[] = ArrayBoxer<Float>.Unbox( fields[i].GetValue(obj) )
 			  	Local m:Int=0
 			  	While m<k.Length()
-			    	line+=prefix+fields[i].Name+"["+m+"]="+k[m]+"~n"
+			    	lines = _FO_AddText(lines,prefix+fields[i].Name+"["+m+"]="+k[m])
 			  		m+=1
 			  	Wend
 	  		End
@@ -186,22 +214,28 @@ Function SaveObject:Void(fl:FileStream,obj:Object,prefix:String="")
 	  Else
 			Select fields[i].Type.Name	
 		  Case "cerberus.boxes.StringObject"
-		    line=prefix+fields[i].Name+"="+UnboxString(fields[i].GetValue(obj))+"~n"
+		    lines = _FO_AddText(lines,prefix+fields[i].Name+"="+UnboxString(fields[i].GetValue(obj)))
 		  Case "cerberus.boxes.FloatObject"
-		    line=prefix+fields[i].Name+"="+UnboxFloat(fields[i].GetValue(obj))+"~n"
+		    lines = _FO_AddText(lines,prefix+fields[i].Name+"="+UnboxFloat(fields[i].GetValue(obj)))
 		  Case "cerberus.boxes.IntObject"
-		    line=prefix+fields[i].Name+"="+UnboxInt(fields[i].GetValue(obj))+"~n"
+		    lines = _FO_AddText(lines,prefix+fields[i].Name+"="+UnboxInt(fields[i].GetValue(obj)))
 		  Default
 		  	' crude way to detect non cerberus class
-		  	If fields[i].Type.Name[0..8]<>"cerberus" Then SaveObject(fl,fields[i].GetValue(obj),prefix+fields[i].Name+".")
+		  	If fields[i].Type.Name[0..8]<>"cerberus" Then lines = _FO_GetObjectText(lines,fields[i].GetValue(obj),prefix+fields[i].Name+".")
 		  End
 	  End
-
-		If fl=Null
-			Print line.Trim()
-		Else
-			fl.WriteString(line)
-		End
+		
 		i+=1  
 	Wend
+	
+	Return lines
+End
+
+Function _FO_AddText:String[](lines:String[],line:String)
+	If line.Trim()<>""
+		lines = lines.Resize(lines.Length()+1)
+		lines[lines.Length()-1] = line.Trim()
+	End
+	
+	Return lines
 End
