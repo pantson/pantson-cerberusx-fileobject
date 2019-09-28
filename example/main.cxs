@@ -59,6 +59,9 @@ Class myClass Extends App
 		If KeyHit(KEY_D) Then DisplayObject(test)
 		If KeyHit(KEY_S) Then SaveObject("test.txt",test)
 		If KeyHit(KEY_L) Then LoadObject("test.txt",test)
+		If KeyHit(KEY_O) Then OpenGameState()
+		If KeyHit(KEY_W) Then WriteGameState()
+
 		If KeyHit(KEY_C)
 			test.number = 0
 			test.floating = 0
@@ -82,6 +85,24 @@ Class myClass Extends App
 		canvas.Flush
 
 		Return 0
+	End
+	
+	Method WriteGameState:Void()
+		Local data:String[] = Object2String(test)
+		Local text:String = ""
+		Local i:Int
+		While i<data.Length()
+			text+=data[i]+"##"
+			i+=1
+		Wend
+		SaveState(text)
+	End
+	
+	Method OpenGameState:Void()
+		Local text:String = LoadState()
+		Local data:String[] = text.Split("##")
+		
+		String2Object(data,test)
 	End
 End
 
