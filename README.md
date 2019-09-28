@@ -38,11 +38,11 @@ Arrays of custom types not supported.
 
 ## Functions
 
-### Object2String:String[](obj:Object)
+### Object2String:String\[\](obj:Object)
 
 Converts an object to text. Use this text to add to your gamestate or other files.
 
-### String2Object(text:String,obj:Objec)
+### String2Object(text:String\[\],obj:Objec)
 
 Convert some text to an object.
 
