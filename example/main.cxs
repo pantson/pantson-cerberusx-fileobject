@@ -81,7 +81,7 @@ Class myClass Extends App
 		canvas.DrawText "text="+test.text,20,100
 
 		canvas.DrawText "S-save object      L-load object    C-clear object   D-display object",20,300
-
+		canvas.DrawText "O-Open GameState   W-Write GameState",20,320
 		canvas.Flush
 
 		Return 0
