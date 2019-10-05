@@ -16,7 +16,7 @@ Function SaveObject:Void(file:String,obj:Object)
 	Local fl:FileStream = FileStream.Open(file,"w")
 	Local i:Int=0
 	While i<text.Length()
-		fl.WriteLine(text[i])'+"~n")
+		fl.WriteLine(text[i])
 		i+=1
 	Wend	
 	fl.Close()
@@ -67,9 +67,9 @@ Function String2Object:Void(lines:String[],obj:Object)
 				
 				' find var in parent
 				Local c:ClassInfo = GetClass(f)
-				Local classname:String = c.Name
 #If CONFIG="debug"
-		If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
+				Local classname:String = c.Name
+				If c=Null Then Error("Cant find "+classname+". Have you included #REFLECTION_FILTER=~qfile~q? Where file is the name of the cxs file (without .cxs) with the "+classname+" class")
 #End
 				Local fields:FieldInfo[] = c.GetFields(False)
 				
@@ -91,6 +91,19 @@ Function String2Object:Void(lines:String[],obj:Object)
 					  			k[index] = Int(val)
 					  			' box it up
 							    fields[i].SetValue(f,ArrayBoxer<Int>.Box(k))
+					  		Case "Bool"
+					  			' unbox first
+							  	Local k:Bool[] = ArrayBoxer<Bool>.Unbox( fields[i].GetValue(f) )
+					  			' resize if nesscary
+					  			If k.Length()<index+1 Then k = k.Resize(index+1)
+					  			' assign index with value
+					  			If val.ToLower() = "true" Or val="1"
+						  			k[index] = True
+					  			Else
+						  			k[index] = False
+					  			End
+					  			' box it up
+							    fields[i].SetValue(f,ArrayBoxer<Bool>.Box(k))
 					  		Case "String"
 					  			' unbox first
 							  	Local k:String[] = ArrayBoxer<String>.Unbox( fields[i].GetValue(f) )
@@ -113,6 +126,12 @@ Function String2Object:Void(lines:String[],obj:Object)
 							Else
 								' plain types
 								Select fields[i].Type.Name	
+							  Case "cerberus.boxes.BoolObject"
+							  	If val.ToLower() = "true"
+								    fields[i].SetValue(f,BoxBool(True))
+							    Else
+								    fields[i].SetValue(f,BoxBool(False))
+							    End
 							  Case "cerberus.boxes.StringObject"
 							    fields[i].SetValue(f,BoxString(String(val)))
 							  Case "cerberus.boxes.FloatObject"
@@ -175,19 +194,39 @@ Function _FO_GetObjectText:String[](lines:String[],obj:Object,prefix:String="")
 	  	' if contains . then non cerberus class (dirty)
 	  	If _type.Contains(".")
 #If CONFIG="debug"
-					Print "  "+fields[i].Name+"[] - Arrays of non CerberusX classes are unsupported "
+					Print "  "+fields[i].Name+"[ ] - Arrays of non CerberusX classes are unsupported "
 #End
-					' The below block should have worked, but ArrayBoxer doesnt support custom types
+
 #rem
-			  	Local k:Object[] =  ArrayBoxer<Object>.Unbox(fields[i].GetValue(obj))
+					' The below block should have worked, but ArrayBoxer doesnt support custom types
+'					Local fi:FieldInfo = fields[i]
+	'				Print fi.Name
+		'			Local ac:ClassInfo = GetClass(fi.Type.Name)
+			'		Local f:FieldInfo[] = ac.GetFields(false)
+				'	Print f[0].Name
+					'Local of:Object = fi.GetValue(obj)
+			  	Local k:Object[] =  ArrayBoxerObject<Object>.Unbox(fields[i].GetValue(obj))
+'DebugStop()
 			  	Local m:Int=0
 			  	While m<k.Length()
-						SaveObject(fl,k[m],prefix+fields[i].Name+"["+m+"].")
+						lines = _FO_GetObjectText(lines,k[m],prefix+fields[i].Name+"["+m+"].")
+'Print k[m].Name
 			  		m+=1
 			  	Wend
 #end
 	  	Else
 	  		Select _type
+			  Case "Bool"
+			  	Local k:Bool[] = ArrayBoxer<Bool>.Unbox( fields[i].GetValue(obj) )
+			  	Local m:Int=0
+			  	While m<k.Length()
+			  		If k[m]=True
+				    	lines = _FO_AddText(lines,prefix+fields[i].Name+"["+m+"]=True")
+			    	Else
+				    	lines = _FO_AddText(lines,prefix+fields[i].Name+"["+m+"]=False")
+			    	End
+			  		m+=1
+			  	Wend
 			  Case "Int"
 			  	Local k:Int[] = ArrayBoxer<Int>.Unbox( fields[i].GetValue(obj) )
 			  	Local m:Int=0
@@ -213,6 +252,12 @@ Function _FO_GetObjectText:String[](lines:String[],obj:Object,prefix:String="")
 	  	End
 	  Else
 			Select fields[i].Type.Name	
+		  Case "cerberus.boxes.BoolObject"
+		  	If UnboxBool(fields[i].GetValue(obj))=True
+			    lines = _FO_AddText(lines,prefix+fields[i].Name+"=True")
+		    Else
+			    lines = _FO_AddText(lines,prefix+fields[i].Name+"=False")
+				End
 		  Case "cerberus.boxes.StringObject"
 		    lines = _FO_AddText(lines,prefix+fields[i].Name+"="+UnboxString(fields[i].GetValue(obj)))
 		  Case "cerberus.boxes.FloatObject"

@@ -16,8 +16,10 @@ Class test_obj
 	
 	Field img:Image
 	
-	Field n:nested[2]
-	
+'	Field n:nested[2]
+	Field b:Bool
+	Field ba:Bool[4]
+		
 	Field arr1:Int[10]
 	Field arr2:Float[10]
 	Field arr3:String[10]
@@ -45,10 +47,13 @@ Class myClass Extends App
 		test.text = "WAS IT A CAR OR A CAT I SAW"
 		test.floating = 7.8249
 		test.arr1[5]=12345
+		test.b = True
+		test.ba[2] = True
+		test.ba[3] = False
 		test.nest1 = New nested()
 		test.nest2 = New nested()
-		test.n[0] = New nested()
-		test.n[1] = New nested()
+'		test.n[0] = New nested()
+'		test.n[1] = New nested()
 		' auto save the object
 		SaveObject("test.txt",test)
 		
